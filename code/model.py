@@ -187,7 +187,10 @@ class AVSL_Similarity(nn.Module):
             # eta = cert1.unsqueeze(1) * cert2.unsqueeze(0) #(B1,R) * (B2,R) -> (B1,1,R) * (1,B2,R) -> (B1,B2,R)
             P = torch.sigmoid(getattr(self, f"alpha_{l}") * eta + getattr(self, f"beta_{l}")) #(B1,B2,R)
             '''Rectified similarity nodes (delta hat in the paper)'''
-            self.nodes_hat = (1-P) * (self.nodes_hat @ W) + P * nodes.detach() # (B1,B2,R) * ((B1,B2,R) @ (R,R)) + (B1,B2,R) * (B1,B2,R) -> (B1,B2,R)
+            try :
+                self.nodes_hat = (1-P) * (self.nodes_hat @ W) + P * nodes.detach() # (B1,B2,R) * ((B1,B2,R) @ (R,R)) + (B1,B2,R) * (B1,B2,R) -> (B1,B2,R)
+            except:
+                print("P.shape :", P.shape, "W.shape", W.shape, "nodes_hat.shape", self.nodes_hat.shape, "nodes.shape", nodes.shape)
 
         if self.training:
             # Sum along the R axis to get the similarity metric (called d in the paper) between each sample of B1 and B2
