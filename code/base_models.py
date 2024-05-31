@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models import resnet50, ResNet50_Weights
 from torchvision.models import EfficientNet_V2_S_Weights, efficientnet_v2_s
+from torchvision.models import EfficientNet_V2_L_Weights, efficientnet_v2_l
 
 class ResNet50_(nn.Module):
 
@@ -39,6 +40,26 @@ class EfficientNet_v2_S_(nn.Module):
         self.layers = [self.model.get_submodule("features.%d"%i) for i in lay_to_emb_ids]
         self.model.avgpool = PlaceHolderLayer()
         self.model.classifier = PlaceHolderLayer()
+        self.layers_output_channels = {0:32, 1:32, 2:64, 3:96, 4:192, 5:224, 6:384, 7:640, 8:1280}
+
+    def forward(self, x, l):
+        '''computes the feature map of the base_model at a certain layer. At the first layer, computes it starting from the image/
+        At layer 2, use the feature map of layer1 to save some computation time. And so and so on ...'''
+        if l==0 and len(self.pre_layers)>0:
+            for layer in self.pre_layers:
+                x = layer(x)
+        return self.layers[l](x)
+
+
+class EfficientNet_v2_L_(nn.Module):
+
+    def __init__(self, lay_to_emb_ids, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.model = efficientnet_v2_l(weights=EfficientNet_V2_L_Weights.IMAGENET1K_V1)
+        self.pre_layers = [self.model.get_submodule("features.%d"%i) for i in range(0, min(lay_to_emb_ids))]
+        self.layers = [self.model.get_submodule("features.%d"%i) for i in lay_to_emb_ids]
+        self.model.avgpool = PlaceHolderLayer()
+        self.model.classifier = PlaceHolderLayer()
         self.layers_output_channels = {0:24, 1:24, 2:48, 3:64, 4:128, 5:160, 6:256, 7:1280}
 
     def forward(self, x, l):
@@ -48,6 +69,7 @@ class EfficientNet_v2_S_(nn.Module):
             for layer in self.pre_layers:
                 x = layer(x)
         return self.layers[l](x)
+
 
 
 class PlaceHolderLayer(nn.Module):

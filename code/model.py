@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-from base_models import ResNet50_, EfficientNet_v2_S_
+from base_models import ResNet50_, EfficientNet_v2_S_, EfficientNet_v2_L_
 from utils import topk_mask
 import math
 
@@ -15,6 +15,8 @@ class AVSL_Graph(nn.Module):
             self.base_model = ResNet50_(lay_to_emb_ids)
         elif base_model_name == "EfficientNet_V2_S":
             self.base_model = EfficientNet_v2_S_(lay_to_emb_ids)
+        elif base_model_name == "EfficientNet_V2_L":
+            self.base_model = EfficientNet_v2_L_(lay_to_emb_ids)
 
         self.lay_to_emb_ids = lay_to_emb_ids
         self.n_layers = len(lay_to_emb_ids)
