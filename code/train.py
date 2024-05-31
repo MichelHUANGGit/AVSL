@@ -18,8 +18,9 @@ def train(
         n_layers,
         epochs,
         lr, 
-        batch_size, 
+        batch_size,
         device,
+        accumulation_steps=1, 
         CNN_coeffs=(32,0.1),
         sim_coeffs=(32,0.1),
         margin=1.0,
@@ -37,7 +38,6 @@ def train(
     
     print("Start Training")
     # FIX LOSS IN PROGRESS BAR
-    # FIX SAVING TO CSV, ONLY ONE VALUE
     for epoch in range(1, epochs+1):
         # ========================== Training ===========================
         # Train the linear projection of the graph model
@@ -47,14 +47,18 @@ def train(
         tqdmloader = tqdm(train_loader, unit="batch")
         for i, batch in enumerate(tqdmloader):
             images, labels = batch["image"].to(device), batch["label"].to(device)
-            optimizer.zero_grad()
             output_dict = model(images, labels)
-            loss = loss_fn(output_dict)
+            loss = loss_fn(output_dict)/accumulation_steps
             loss.backward()
-            optimizer.step()
+            if (i+1) % accumulation_steps == 0 :
+                optimizer.zero_grad()
+                optimizer.step()
             train_loss = (train_loss * i * batch_size + loss.detach().cpu().item())/ ((i+1) * batch_size)
             tqdmloader.set_description("Train loss: %.5f" %train_loss)
         losses["train"].append(train_loss)
+        if (i+1) % accumulation_steps != 0 :
+            optimizer.zero_grad()
+            optimizer.step()
         # ========================== Validation ===========================
         # Validation on the Proxy Anchor Loss (hence no model.eval())
         with torch.no_grad():
