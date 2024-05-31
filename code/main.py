@@ -23,6 +23,7 @@ def main(
         batch_size_training,
         batch_size_inference,
         device, 
+        accumulation_steps,
         CNN_coeffs, 
         sim_coeffs,
         margin,
@@ -91,7 +92,7 @@ def main(
     else:
         model = AVSL_Similarity(base_model_name, lay_to_emb_ids, num_classes, use_proxy, emb_dim, topk, momentum, p).to(device)
     if train_model:
-        train(model, train_dataset, val_dataset, n_layers, epochs, lr, batch_size_training, device, CNN_coeffs, sim_coeffs, margin, save_dir, model_name)
+        train(model, train_dataset, val_dataset, n_layers, epochs, lr, batch_size_training, device, accumulation_steps, CNN_coeffs, sim_coeffs, margin, save_dir, model_name)
     
     # =================== Measuring performance ======================
     if validate_on_train:
@@ -113,6 +114,7 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=25)
     parser.add_argument("--batch_size_training", type=int, default=100)
     parser.add_argument("--batch_size_inference", type=int, default=30)
+    parser.add_argument("--accumulation_steps", type=int, default=2)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--base_model_name", type=str, default="ResNet50", help="Either ResNet50 or EfficientNet_V2_S")
     parser.add_argument("--lay_to_emb_ids", type=int, nargs='+', default=[2,3,4], help="the base model's layers to project to an embedding space")
