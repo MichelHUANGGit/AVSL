@@ -35,7 +35,7 @@ def train(
     # loss_fn = AVSL_ContrastiveLoss(n_layers, margin)
     optimizer = torch.optim.Adam(model.parameters(), lr)
     losses = {"train":[],"val":[]}
-    
+    nb_grad_batch = batch_size * accumulation_steps
     print("Start Training")
     # FIX LOSS IN PROGRESS BAR
     for epoch in range(1, epochs+1):
@@ -53,7 +53,7 @@ def train(
             if (i+1) % accumulation_steps == 0 :
                 optimizer.step()
                 optimizer.zero_grad()
-            train_loss = (train_loss * i * batch_size + loss.detach().cpu().item())/ ((i+1) * batch_size)
+            train_loss = (train_loss * i * nb_grad_batch + loss.detach().cpu().item())/ ((i+1) * nb_grad_batch)
             tqdmloader.set_description("Train loss: %.5f" %train_loss)
         losses["train"].append(train_loss)
         if (i+1) % accumulation_steps != 0 :
