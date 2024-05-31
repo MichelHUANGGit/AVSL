@@ -74,8 +74,8 @@ class AVSL_Graph(nn.Module):
 
     def get_certainty(self, CAM:torch.Tensor):
         # print("CAM shape before flattening :",CAM.shape)
-        return CAM.flatten(2)
-        # return CAM.flatten(2).std(dim=-1)
+        # return CAM.flatten(2)
+        return CAM.flatten(2).std(dim=-1)
 
     def get_link(self, low_CAM: torch.Tensor, high_CAM: torch.Tensor) -> torch.Tensor:
         '''corresponds to omega hat i.e. the edge values, returns a torch.Tensor of shape (emb_dim,emb_dim)'''
@@ -182,11 +182,11 @@ class AVSL_Similarity(nn.Module):
             # normalized edges
             W /= (torch.sum(W, dim=0, keepdim=True) + 1e-8) #(R,R)
             '''Computing the probability of unreliability matrix (P in the paper). Using the same trick as for the embeddings'''
-            eta = torch.bmm(
-                cert1.transpose(0,1), 
-                cert2.transpose(0,1).transpose(1,2)
-                ).transpose(0,2).transpose(0,1) #(B1,R,HW) and (B2,R,HW) -> (R,B1,HW) @ (R,HW,B2) -> (R,B1,B2) -> (B1,B2,R)
-            # eta = cert1.unsqueeze(1) * cert2.unsqueeze(0) #(B1,R) * (B2,R) -> (B1,1,R) * (1,B2,R) -> (B1,B2,R)
+            # eta = torch.bmm(
+            #     cert1.transpose(0,1), 
+            #     cert2.transpose(0,1).transpose(1,2)
+            #     ).transpose(0,2).transpose(0,1) #(B1,R,HW) and (B2,R,HW) -> (R,B1,HW) @ (R,HW,B2) -> (R,B1,B2) -> (B1,B2,R)
+            eta = cert1.unsqueeze(1) * cert2.unsqueeze(0) #(B1,R) * (B2,R) -> (B1,1,R) * (1,B2,R) -> (B1,B2,R)
             P = torch.sigmoid(getattr(self, f"alpha_{l}") * eta + getattr(self, f"beta_{l}")) #(B1,B2,R)
             '''Rectified similarity nodes (delta hat in the paper)'''
             try :
@@ -217,8 +217,8 @@ class AVSL_Similarity(nn.Module):
                 emb2 = getattr(self, f"proxy_{l}")
                 if l>=1:
                     self.update_link(link, l)
-                    # cert2 = cert1.mean() * torch.ones_like(emb2)
-                    cert2 = emb2.mean() * torch.ones_like(cert1)
+                    cert2 = cert1.mean() * torch.ones_like(emb2)
+                    # cert2 = emb2.mean() * torch.ones_like(cert1)
                 else:
                     cert2 = None
                 output_dict[f"emb_sim_{l}"] = self.get_similarity_matrix(emb1, cert1, emb2, cert2, l)
