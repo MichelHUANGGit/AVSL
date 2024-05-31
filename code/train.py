@@ -51,14 +51,14 @@ def train(
             loss = loss_fn(output_dict)/accumulation_steps
             loss.backward()
             if (i+1) % accumulation_steps == 0 :
-                optimizer.zero_grad()
                 optimizer.step()
+                optimizer.zero_grad()
             train_loss = (train_loss * i * batch_size + loss.detach().cpu().item())/ ((i+1) * batch_size)
             tqdmloader.set_description("Train loss: %.5f" %train_loss)
         losses["train"].append(train_loss)
         if (i+1) % accumulation_steps != 0 :
-            optimizer.zero_grad()
             optimizer.step()
+            optimizer.zero_grad()
         # ========================== Validation ===========================
         # Validation on the Proxy Anchor Loss (hence no model.eval())
         with torch.no_grad():
