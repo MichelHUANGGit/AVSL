@@ -40,7 +40,7 @@ class EfficientNet_v2_S_(nn.Module):
         self.layers = [self.model.get_submodule("features.%d"%i) for i in lay_to_emb_ids]
         self.model.avgpool = PlaceHolderLayer()
         self.model.classifier = PlaceHolderLayer()
-        self.layers_output_channels = {0:32, 1:32, 2:64, 3:96, 4:192, 5:224, 6:384, 7:640, 8:1280}
+        self.layers_output_channels = {0:24, 1:24, 2:48, 3:64, 4:128, 5:160, 6:256, 7:1280}
 
     def forward(self, x, l):
         '''computes the feature map of the base_model at a certain layer. At the first layer, computes it starting from the image/
@@ -60,7 +60,7 @@ class EfficientNet_v2_L_(nn.Module):
         self.layers = [self.model.get_submodule("features.%d"%i) for i in lay_to_emb_ids]
         self.model.avgpool = PlaceHolderLayer()
         self.model.classifier = PlaceHolderLayer()
-        self.layers_output_channels = {0:24, 1:24, 2:48, 3:64, 4:128, 5:160, 6:256, 7:1280}
+        self.layers_output_channels = {0:32, 1:32, 2:64, 3:96, 4:192, 5:224, 6:384, 7:640, 8:1280}
 
     def forward(self, x, l):
         '''computes the feature map of the base_model at a certain layer. At the first layer, computes it starting from the image/
@@ -121,5 +121,7 @@ if __name__ == "__main__":
     print(layer_hooked_.fmap.shape)
     print(x.shape)
     print(torch.norm((layer_hooked_.fmap - x)))
+
+    effnetL_ = EfficientNet_v2_L_(lay_to_emb_ids=[0,1,2,3,4,5,6,7,8]).to(device)
         
 
