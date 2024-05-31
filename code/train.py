@@ -31,8 +31,8 @@ def train(
     # ============== Initialization =================
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
     valid_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
-    # loss_fn = Proxy_AVSL_Loss(n_layers, *CNN_coeffs, *sim_coeffs)
-    loss_fn = AVSL_ContrastiveLoss(n_layers, margin)
+    loss_fn = Proxy_AVSL_Loss(n_layers, *CNN_coeffs, *sim_coeffs)
+    # loss_fn = AVSL_ContrastiveLoss(n_layers, margin)
     optimizer = torch.optim.Adam(model.parameters(), lr)
     losses = {"train":[],"val":[]}
     
