@@ -183,7 +183,7 @@ class AVSL_Similarity(nn.Module):
             eta = torch.bmm(
                 cert1.transpose(0,1), 
                 cert2.transpose(0,1).transpose(1,2)
-                ).transpose(0,2) #(B1,R,HW) and (B2,R,HW) -> (R,B1,HW) @ (R,HW,B2) -> (R,B1,B2) -> (B1,B2,R)
+                ).transpose(0,2).transpose(0,1) #(B1,R,HW) and (B2,R,HW) -> (R,B1,HW) @ (R,HW,B2) -> (R,B1,B2) -> (B1,B2,R)
             # eta = cert1.unsqueeze(1) * cert2.unsqueeze(0) #(B1,R) * (B2,R) -> (B1,1,R) * (1,B2,R) -> (B1,B2,R)
             P = torch.sigmoid(getattr(self, f"alpha_{l}") * eta + getattr(self, f"beta_{l}")) #(B1,B2,R)
             '''Rectified similarity nodes (delta hat in the paper)'''
