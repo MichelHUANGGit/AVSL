@@ -79,10 +79,11 @@ def main(
     n_layers = len(lay_to_emb_ids)
     model_name = f"emb{emb_dim}-batch{batch_size_training}-lr{lr}-layers{n_layers}-topk{topk}-m{momentum}.pt"
     save_dir = os.path.join("runs", name)
+    
     if not(os.path.exists("runs")):
         os.mkdir("runs")
-        if not(os.path.exists(save_dir)):
-            os.mkdir(save_dir)
+    if not(os.path.exists(save_dir)):
+        os.mkdir(save_dir)
 
     if pretrained:
         print("Loading pretrained model")

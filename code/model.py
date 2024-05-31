@@ -191,6 +191,13 @@ class AVSL_Similarity(nn.Module):
                 self.nodes_hat = (1-P) * (self.nodes_hat @ W) + P * nodes.detach() # (B1,B2,R) * ((B1,B2,R) @ (R,R)) + (B1,B2,R) * (B1,B2,R) -> (B1,B2,R)
             except:
                 print("P.shape :", P.shape, "W.shape", W.shape, "nodes_hat.shape", self.nodes_hat.shape, "nodes.shape", nodes.shape)
+                print("cert1.shape:", cert1.shape, "cert2.shape", cert2.shape, "eta.shape", eta.shape)
+                print("cert1.transpose(0,1).shape", cert1.transpose(0,1).shape, "cert2.transpose(0,1).transpose(1,2).shape", cert2.transpose(0,1).transpose(1,2).shape)
+                print("eta before transpose.shape :", torch.bmm(
+                cert1.transpose(0,1), 
+                cert2.transpose(0,1).transpose(1,2)
+                ).shape)
+                
 
         if self.training:
             # Sum along the R axis to get the similarity metric (called d in the paper) between each sample of B1 and B2
