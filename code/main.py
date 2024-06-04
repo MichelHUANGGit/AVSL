@@ -1,9 +1,10 @@
 import torch
+import torch.nn.parallel
 from torchvision import transforms
 from dataset import CUB_dataset, CUB_dataset_Test, CUB_full_dataset
 from model import AVSL_Similarity
-import albumentations as A
-from albumentations.pytorch import ToTensorV2
+# import albumentations as A
+# from albumentations.pytorch import ToTensorV2
 from train import train
 from inference import validate, infer_queries, get_predictions, infer_gallery
 import argparse
