@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.models import resnet50, ResNet50_Weights
+from torchvision.models import ResNet50_Weights, resnet50
 from torchvision.models import EfficientNet_V2_S_Weights, efficientnet_v2_s
 from torchvision.models import EfficientNet_V2_L_Weights, efficientnet_v2_l
 
@@ -69,7 +69,6 @@ class EfficientNet_v2_L_(nn.Module):
             for layer in self.pre_layers:
                 x = layer(x)
         return self.layers[l](x)
-
 
 
 class PlaceHolderLayer(nn.Module):

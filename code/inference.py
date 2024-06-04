@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 import os
 import pandas
 
-def precision(K, matrix:torch.tensor, labels:torch.tensor):
+def recall(K, matrix:torch.tensor, labels:torch.tensor):
     '''expects pair-wise similarity matrix'''
     topK_closest_images = torch.topk(matrix, K, dim=1, largest=False).indices #shape (N,K)
     # For the N images, take the labels of K closest images
@@ -18,8 +18,7 @@ def precision(K, matrix:torch.tensor, labels:torch.tensor):
     correctly_retrieved = torch.eq(topK_closest_labels, labels_extended).to(torch.float64) #shape(N,K)
     return correctly_retrieved.mean().item()
 
-def recall(K, matrix:torch.tensor, labels:torch.tensor):
-    '''expects pair-wise similarity matrix'''
+'''def recall(K, matrix:torch.tensor, labels:torch.tensor):
     topK_closest_images = torch.topk(matrix, K, dim=1, largest=False).indices #shape (N,K)
     # For the N images, take the labels of K closest images
     topK_closest_labels = torch.zeros_like(topK_closest_images, dtype=torch.int8)
@@ -28,7 +27,7 @@ def recall(K, matrix:torch.tensor, labels:torch.tensor):
             topK_closest_labels[i,j] = labels[topK_closest_images[i,j]]
     labels_extended = labels.repeat(K,1).T #shape (N,K)
     at_least_one_retrieved = (torch.sum(labels_extended == topK_closest_labels, dim=1) > 0).to(torch.float64) # shape(N) of bools
-    return torch.mean(at_least_one_retrieved).item()
+    return torch.mean(at_least_one_retrieved).item()'''
 
 def infer_gallery(
         model,
@@ -76,7 +75,6 @@ def validate(model, dataset, batch_size, device, metrics_K, save_matrix=False, n
         torch.save(similarities, save_path)
         print(f"Saved {name} similarity matrix!")
     for metric_K in metrics_K:
-        print("Precision @ %d"%metric_K, precision(metric_K, similarities, labels))
         print("Recall @ %d"%metric_K, recall(metric_K, similarities, labels))
 
 def infer_queries(
@@ -164,7 +162,6 @@ if __name__ == "__main__":
     labels = torch.tensor(gallery_labels, dtype=torch.int8)
     metrics_K = [1,2,4,8]
     for metric_K in metrics_K:
-        print("Average Precision @ %d" %metric_K, precision(metric_K, similarity_matrix, labels))
         print("Average Recall @ %d" %metric_K, recall(metric_K, similarity_matrix, labels))
 
     # Query images (test)

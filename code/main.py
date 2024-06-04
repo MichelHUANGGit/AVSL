@@ -1,11 +1,11 @@
 import torch
 from torchvision import transforms
-from dataset import CUB_dataset, CUB_dataset_Test
+from dataset import CUB_dataset, CUB_dataset_Test, CUB_full_dataset
 from model import AVSL_Similarity
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 from train import train
-from inference import validate, infer_queries, get_predictions
+from inference import validate, infer_queries, get_predictions, infer_gallery
 import argparse
 import os
 
@@ -14,9 +14,9 @@ def main(
         lay_to_emb_ids,
         emb_dim, 
         num_classes, 
-        use_proxy, 
         topk, 
-        momentum, 
+        momentum,
+        momentum_decay,
         p,
         epochs, 
         lr, 
@@ -26,20 +26,43 @@ def main(
         accumulation_steps,
         CNN_coeffs, 
         sim_coeffs,
-        margin,
         metrics_K,
         model_path,
         name,
         validate_on_train=False,
         validate_on_val=True,
         infer_gallery_to_queries=True,
+        infer_full_dataset=False,
         pretrained=False,
         train_model=False,
     ) -> None:
+    '''
+    Full pipeline to create/train/validate/save model
+    
+
+        Parameters
+        ----------
+        - base_model_name: The base CNN model on which the AVSL model is built upon
+        - lay_to_emb_ids: The ids the layers of the CNN model to project into an embedding space. For ResNet50 can be any
+            sublist of [1,2,3,4], for EfficientNet_V2_S can be a sublist of [0,1,2,3,4,5,6,7]
+        - num_classes: number of classes in the dataset
+        - emb_dim: embedding dimension
+        - topk: parameter of the AVSL model to compute the overall similarity
+        - momemtum: the momentum at which the links are updated. W <- (1-m)*old_W + m*new_W
+        - momentum_decay: exponential decay rate of the momentum
+        - p: the exponent of the norm used to compute similarities, p=2 means L2 norm.
+        - accumulation_steps: number of steps for gradient accumulation (to increase the batch size without using too much GPU memory)
+        - batch_size_training: batch_size used for training, the higher the better ProxyAnchorLoss works
+        - batch_size_inference: batch_size used for inference, small is faster
+        - CNN_coeffs, sim_coeffs: coefficients used for the ProxyAnchorLoss
+        - metrics_K: the K used to compute recall@K
+        - model_path: if using a pretrained model, the path of the model
+        - name: name of the model, is used to create a directory in runs/{name}
+
+    '''
     # ==================== Datasets ====================
     train_transform = transforms.Compose([
         transforms.Resize((224, 224)),
-        # transforms.RandomCrop((224, 224)),
         transforms.RandomHorizontalFlip(0.5),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
@@ -78,7 +101,7 @@ def main(
         gallery_length=0)
     
     n_layers = len(lay_to_emb_ids)
-    model_name = f"emb{emb_dim}-batch{batch_size_training}-lr{lr}-layers{n_layers}-topk{topk}-m{momentum}.pt"
+    model_name = f"emb{emb_dim}-batch{batch_size_training}-lr{lr}-layers{n_layers}-topk{topk}-m{momentum}-mdk{momentum_decay}.pt"
     save_dir = os.path.join("runs", name)
     
     if not(os.path.exists("runs")):
@@ -90,9 +113,9 @@ def main(
         print("Loading pretrained model")
         model = torch.load(model_path, device)
     else:
-        model = AVSL_Similarity(base_model_name, lay_to_emb_ids, num_classes, use_proxy, emb_dim, topk, momentum, p).to(device)
+        model = AVSL_Similarity(base_model_name, lay_to_emb_ids, num_classes, emb_dim, topk, momentum, p).to(device)
     if train_model:
-        train(model, train_dataset, val_dataset, n_layers, epochs, lr, batch_size_training, device, accumulation_steps, CNN_coeffs, sim_coeffs, margin, save_dir, model_name)
+        train(model, train_dataset, val_dataset, n_layers, epochs, lr, batch_size_training, device, accumulation_steps, CNN_coeffs, sim_coeffs, momentum_decay, save_dir, model_name)
     
     # =================== Measuring performance ======================
     if validate_on_train:
@@ -106,6 +129,12 @@ def main(
         torch.save(gallery_to_query_similarities, os.path.join(save_dir,"glry_to_query_sim.pt"))
         for metric_K in metrics_K:
             get_predictions(gallery_to_query_similarities, train_dataset.labels, metric_K, query_dataset.image_paths, save_dir=save_dir)
+    # ========================= Infering on the whole dataset =========================
+    if infer_full_dataset:
+        full_dataset = CUB_full_dataset(transform, return_id=True)
+        full_similarities = infer_gallery(model, full_dataset, batch_size_inference, device)
+        torch.save(full_similarities, os.path.join(save_dir, "full_similiarities.pt"))
+        print("Saved full similarities!")
 
 
 if __name__ == "__main__":
@@ -120,17 +149,17 @@ if __name__ == "__main__":
     parser.add_argument("--lay_to_emb_ids", type=int, nargs='+', default=[2,3,4], help="the base model's layers to project to an embedding space")
     parser.add_argument("--emb_dim", type=int, default=512)
     parser.add_argument("--num_classes", type=int, default=30)
-    parser.add_argument("--use_proxy", action="store_true")
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--topk", type=int, default=128, help="topk value AVSL")
     parser.add_argument("--momentum", type=float, default=0.5)
+    parser.add_argument("--momentum_decay", type=float, default=0.9)
     parser.add_argument("--p", type=int, default=2, help="norm degree for embedding distance")
     parser.add_argument("--CNN_coeffs", type=float, nargs=2, default=(32, 0.1), help="Coefficients for CNN loss")
     parser.add_argument("--sim_coeffs", type=float, nargs=2, default=(32, 0.1))
-    parser.add_argument("--margin", type=float, default=1.0, help="contrastive loss margin")
     parser.add_argument("--validate_on_train", action="store_true")
     parser.add_argument("--validate_on_val", action="store_true")
     parser.add_argument("--infer_gallery_to_queries", action="store_true")
+    parser.add_argument("--infer_full_dataset", action="store_true")
     parser.add_argument("--pretrained", action="store_true")
     parser.add_argument("--train_model", action="store_true", help="Whetheer to train the model")
     parser.add_argument("--model_path", type=str, default=None, help="if pretrained, takes the pretrained model path")

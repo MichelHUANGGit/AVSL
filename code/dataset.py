@@ -35,12 +35,9 @@ class CUB_dataset(Dataset):
     def __getitem__(self, idx):
         img_path = self.image_paths[idx]
         label = self.labels[idx]
-        
         image = Image.open(img_path).convert('RGB')
-        
         if self.transform:
             image = self.transform(image)
-        
         output = {"image":image, "label":label}
         if self.return_id:
             output["id"] = idx + self.gallery_length
@@ -59,6 +56,7 @@ class CUB_dataset_Test(Dataset):
             if img_name.endswith(('.png', '.jpg', '.jpeg')):
                 img_path = os.path.join(root_dir, img_name)
                 self.image_paths.append(img_path)
+
         
     def __len__(self):
         return len(self.image_paths)
@@ -74,6 +72,50 @@ class CUB_dataset_Test(Dataset):
         if self.return_id:
             output["id"] = idx + self.gallery_length
         return output
+    
+class CUB_full_dataset(Dataset):
+    '''full dataset with train/val/test.'''
+    def __init__(self, transform=None, return_id=True):
+        self.transform = transform
+        self.return_id = return_id
+
+        class_index_df = pd.read_csv("data/class_indexes.csv")
+        self.class_to_idx = {row['category_cub']: row['idx'] for _, row in class_index_df.iterrows()}
+        self.image_paths = []
+        self.labels = []
+
+        # Train and validation paths
+        for root_dir in ['data/train_images', 'val_images']:
+            for class_name, class_idx in self.class_to_idx.items():
+                class_dir = os.path.join(root_dir, class_name)
+                if os.path.isdir(class_dir):
+                    for img_name in os.listdir(class_dir):
+                        if img_name.endswith(('.png', '.jpg', '.jpeg')):
+                            img_path = os.path.join(class_dir, img_name)
+                            self.image_paths.append(img_path)
+                            self.labels.append(class_idx)
+        
+        # Test paths
+        root_dir = 'data/test_images'
+        for img_name in os.listdir(root_dir):
+            if img_name.endswith(('.png', '.jpg', '.jpeg')):
+                img_path = os.path.join(root_dir, img_name)
+                self.image_paths.append(img_path)
+        
+    def __len__(self):
+        return len(self.image_paths)
+    
+    def __getitem__(self, idx):
+        img_path = self.image_paths[idx]
+        image = Image.open(img_path).convert('RGB')
+        if self.transform:
+            image = self.transform(image)
+        output = {"image":image}
+        if self.return_id:
+            output["id"] = idx
+        return output
+        
+
 
 # Example usage
 if __name__ == "__main__":
@@ -111,3 +153,6 @@ if __name__ == "__main__":
         if i>1:
             break
         
+    full_dataset = CUB_full_dataset(transform, True)
+    print(len(full_dataset))
+    print(full_dataset[len(full_dataset)-1])

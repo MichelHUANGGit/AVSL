@@ -5,11 +5,12 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from losses import Proxy_AVSL_Loss, AVSL_ContrastiveLoss
+from losses import Proxy_AVSL_Loss
 from model import AVSL_Similarity
 from dataset import CUB_dataset
 import pandas
 import os
+
 
 def train(
         model,
@@ -23,24 +24,25 @@ def train(
         accumulation_steps=1, 
         CNN_coeffs=(32,0.1),
         sim_coeffs=(32,0.1),
-        margin=1.0,
+        momentum_decay=0.95,
         save_dir=".",
-        model_name="AVSL",
+        model_name="AVSL.pt",
     ) -> None:
+    '''
+    Train an AVSL model with proxy anchor loss
+    '''
 
     # ============== Initialization =================
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
     valid_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
     loss_fn = Proxy_AVSL_Loss(n_layers, *CNN_coeffs, *sim_coeffs)
-    # loss_fn = AVSL_ContrastiveLoss(n_layers, margin)
     optimizer = torch.optim.Adam(model.parameters(), lr)
     losses = {"train":[],"val":[]}
     nb_grad_batch = batch_size * accumulation_steps
     print("Start Training")
-    # FIX LOSS IN PROGRESS BAR
+    # FIX LOSS IN PROGRESS BAR WHEN USING ACCUMULATION
     for epoch in range(1, epochs+1):
         # ========================== Training ===========================
-        # Train the linear projection of the graph model
         print("Epoch %d" %epoch)
         model.train()
         train_loss = 0.
@@ -71,7 +73,9 @@ def train(
                 val_loss = (val_loss * i * batch_size + loss.detach().cpu().item())/ ((i+1) * batch_size)
                 tqdmloader.set_description("Val loss: %.5f" %val_loss)
         losses["val"].append(val_loss)
-        # print("Train loss : %0.5f - Validation loss : %0.5f" %(train_loss,val_loss))
+        print("Train loss : %0.5f - Validation loss : %0.5f" %(train_loss,val_loss))
+        model.momentum *= momentum_decay
+
     print("Saving model and losses...")
     torch.save(model, os.path.join(save_dir, model_name))
     df = pandas.DataFrame(losses)
@@ -85,9 +89,9 @@ if __name__ == "__main__":
         "lr":1e-4,
         "batch_size":30,
         "device":torch.device("cuda"),
+        'accumulation_steps':1,
         "CNN_coeffs":(32,0.1),
         "sim_coeffs":(32,0.1),
-        "margin":1.0,
     }
     model_args = {
         "base_model_name":"ResNet50",
@@ -97,7 +101,6 @@ if __name__ == "__main__":
         "topk":32,
         "momentum":0.5,
         "p":2,
-        "use_proxy":False,
     }
     
     # ==================== Datasets ====================
