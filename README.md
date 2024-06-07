@@ -1,18 +1,19 @@
-Implementation of the paper: [text](https://openaccess.thecvf.com/content/CVPR2022/papers/Zhang_Attributable_Visual_Similarity_Learning_CVPR_2022_paper.pdf)
+Implementation of the paper: (https://openaccess.thecvf.com/content/CVPR2022/papers/Zhang_Attributable_Visual_Similarity_Learning_CVPR_2022_paper.pdf)
 
 Quick summary of the paper:
 (The paper use the word similarity, but it's rather more of a distance than a similarity, values close to 0 indicate similar values, higher values indicate distant values)
 The AVSL model is built on top of a CNN model. It learns a distance/similarity metric between images. Images of the same classes should have a small distance between them, and images of different classes should have a bigger difference. The model projects several feature maps of the CNN to several embedding spaces then computes distances between images, for different level of deepness. The intuition is that not only high-level features are important to learn similarity, but also low-level features. The AVSL then combines all of the distances at different level of deepness of the CNN model, to create a more refined distance according to the formula, (from bottom to top):
 
 $$\hat{\delta}^1 = \delta^1 $$
+
 $$ \forall l \geq 2 \ \ \ \ \ \hat{\delta}^l = P^l \ \delta^l + (I \ - \ P^l) \ \hat{W}^l \ \hat{\delta}^{l-1}$$
 
 
 To run the model:
 
-> create a python env
-> pip install requirements.txt
-> run the command in demo.sh
+- create a python env
+- pip install requirements.txt
+- run the command in demo.sh
 
 The source code is in the folder code, the important files are main.py, model.py, train.py, inference.py, losses.py.
 
