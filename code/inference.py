@@ -18,17 +18,6 @@ def recall(K, matrix:torch.tensor, labels:torch.tensor):
     correctly_retrieved = torch.eq(topK_closest_labels, labels_extended).to(torch.float64) #shape(N,K)
     return correctly_retrieved.mean().item()
 
-'''def recall(K, matrix:torch.tensor, labels:torch.tensor):
-    topK_closest_images = torch.topk(matrix, K, dim=1, largest=False).indices #shape (N,K)
-    # For the N images, take the labels of K closest images
-    topK_closest_labels = torch.zeros_like(topK_closest_images, dtype=torch.int8)
-    for i in range(topK_closest_images.size(0)):
-        for j in range(topK_closest_images.size(1)):
-            topK_closest_labels[i,j] = labels[topK_closest_images[i,j]]
-    labels_extended = labels.repeat(K,1).T #shape (N,K)
-    at_least_one_retrieved = (torch.sum(labels_extended == topK_closest_labels, dim=1) > 0).to(torch.float64) # shape(N) of bools
-    return torch.mean(at_least_one_retrieved).item()'''
-
 def infer_gallery(
         model,
         dataset,
@@ -47,9 +36,7 @@ def infer_gallery(
     with torch.no_grad():
         for i, batch1 in tqdm(enumerate(loader)):
             for j, batch2 in tqdm(enumerate(loader)):
-                '''Computing roughly the upper triangle. This is not exactly the upper triangle.
-                we can think of the batch_size forming a super-pixel moving down the diagonal of an image, if the super-pixel (batch)
-                is much bigger than one pixel (datapoint) there will be some elements in the lower triangle computed, but that's ok.'''
+                '''Computing the upper triangle of the matrix similarity.'''
                 if j>=i:
                     images1 = batch1["image"].to(device)
                     images2 = batch2["image"].to(device)
@@ -84,6 +71,7 @@ def infer_queries(
         query_dataset,
         device,
     ):
+    '''Measures similarity between a gallery dataset and a query dataset'''
     # ==================== Initialization ====================
     N, M = len(gallery_dataset), len(query_dataset)
     gallery_loader = DataLoader(gallery_dataset, batch_size, shuffle=False, pin_memory=True)
@@ -107,6 +95,7 @@ def infer_queries(
     return similarity_matrix.cpu()
 
 def get_predictions(similarity_matrix, gallery_labels, K, test_paths, save_dir):
+    '''Performs a K-Nearest Neighbors to infer labels from a gallery to query similarity matrix'''
     topk_closest_images = torch.topk(similarity_matrix, K, dim=0, largest=False).indices
     topk_closest_labels = torch.zeros_like(topk_closest_images)
     for i in range(topk_closest_images.size(0)):

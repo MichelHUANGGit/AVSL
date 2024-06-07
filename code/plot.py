@@ -3,14 +3,15 @@ import matplotlib.pyplot as plt
 # Data for the plot
 methods = [
     "Baseline ResNet50 (frozen, finetuned FC)",
-    "AVSL ResNet50 with ContrastiveLoss",
+    "AVSL ResNet50 ContrastiveLoss",
+    "AVSL ResNet50 ProxyLoss last layer only",
     "AVSL ResNet50 (paper params)",
     "AVSL ResNet50 (tuned params)",
     "AVSL EfficientNetSmall",
     "AVSL EfficientNetLarge"
 ]
 
-accuracies = [63, 82, 85, 86, 88, 89]
+accuracies = [63, 82, 82, 85, 86, 88, 89]
 
 # Create the bar plot
 fig, ax = plt.subplots(figsize=(10, 6))

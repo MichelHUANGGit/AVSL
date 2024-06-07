@@ -1,10 +1,7 @@
 import torch
-import torch.nn.parallel
 from torchvision import transforms
 from dataset import CUB_dataset, CUB_dataset_Test, CUB_full_dataset
 from model import AVSL_Similarity
-# import albumentations as A
-# from albumentations.pytorch import ToTensorV2
 from train import train
 from inference import validate, infer_queries, get_predictions, infer_gallery
 import argparse
@@ -71,20 +68,6 @@ def main(
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])]) 
-    # train_transform = A.Compose([
-    #     A.Resize((224,224)),
-    #     A.HorizontalFlip(p=0.5),
-    #     A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=1.0),
-    #     A.HueSaturationValue(hue_shift_limit=20, sat_shift_limit=30, val_shift_limit=20, p=1.0),
-    #     A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=15, p=0.5),
-    #     A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    #     ToTensorV2(),
-    # ])
-    # transform = A.Compose([
-    #     A.Resize((224,224)),
-    #     A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    #     ToTensorV2(),
-    # ])
     train_dataset = CUB_dataset(
         root_dir='data/train_images',
         class_index_file='data/class_indexes.csv',
